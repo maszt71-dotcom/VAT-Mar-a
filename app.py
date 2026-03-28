@@ -5,31 +5,13 @@ st.set_page_config(page_title="VAT MARŻA PRO", layout="centered")
 # -------- STYLE --------
 st.markdown("""
 <style>
-.block-container {max-width: 850px;}
-.hero {
-    background: linear-gradient(135deg,#111827,#1f2937);
-    color: white;
-    padding: 20px;
-    border-radius: 20px;
-    margin-bottom: 15px;
-}
-.hero-big {
-    font-size: 36px;
-    font-weight: 800;
-}
-.card {
-    background: white;
-    border-radius: 16px;
-    padding: 15px;
-    border: 1px solid #eee;
-    text-align: center;
-}
-.label {font-size: 13px; color: #666;}
-.value {font-size: 22px; font-weight: 700;}
-.green {color: green;}
-.red {color: red;}
-.orange {color: #c4320a;}
-.blue {color: #155eef;}
+.block-container {max-width: 900px; padding-top: 1rem; padding-bottom: 2rem;}
+.hero {background: linear-gradient(135deg,#111827,#1f2937); color:white; padding:20px; border-radius:20px; margin-bottom:18px;}
+.hero-big {font-size:38px; font-weight:800; line-height:1.1;}
+.card {background:white; border-radius:16px; padding:16px; border:1px solid #eee; text-align:center; min-height:110px;}
+.label {font-size:13px; color:#666; margin-bottom:8px;}
+.value {font-size:24px; font-weight:700;}
+.green {color: green;} .red {color: red;} .orange {color:#c4320a;} .blue {color:#155eef;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -41,41 +23,43 @@ def pln(x):
 
 def to_float(x):
     try:
-        return float(x.replace(",", "."))
+        x = x.replace(",", ".").strip()
+        return float(x) if x else 0.0
     except:
         return 0.0
 
-# -------- INPUTY --------
 st.title("💰 Kalkulator VAT marża")
 
-c1, c2 = st.columns(2)
-
+# -------- INPUTY --------
+c1, c2, c3 = st.columns(3)
 with c1:
     zakup = to_float(st.text_input("Zakup (umowa)", placeholder="np. 547"))
-    faktura = to_float(st.text_input("Faktura VAT marża (sprzedaż)", placeholder="np. 2000"))
-
 with c2:
     koszt = to_float(st.text_input("Koszty faktura brutto", placeholder="np. 600"))
+with c3:
+    sprzedaz = to_float(st.text_input("Cena sprzedaży", placeholder="np. 2000"))
+
+# NOWE POLE EXTRA
+extra = to_float(st.text_input("EXTRA", placeholder="np. 200"))
 
 # -------- OBLICZENIA --------
+marza = sprzedaz - zakup
+vat_marza = marza * 23 / 123 if marza > 0 else 0.0
+vat_z_kosztow = koszt * 23 / 123 if koszt > 0 else 0.0
+vat_do_zaplaty = vat_marza - vat_z_kosztow
 
-# VAT
-marza = faktura - zakup
-vat_marza = marza * 23 / 123 if marza > 0 else 0
-vat_koszt = koszt * 23 / 123
-vat_do_zaplaty = vat_marza - vat_koszt
-
-# wynik po VAT
-po_vat = faktura - zakup - koszt - max(vat_do_zaplaty, 0)
-
-# PIT + zdrowotne od wyniku po VAT
-pit = po_vat * 0.19 if po_vat > 0 else 0
-zdrowotne = po_vat * 0.049 if po_vat > 0 else 0
-
-# końcowy zarobek
+po_vat = sprzedaz - zakup - koszt - max(vat_do_zaplaty, 0)
+pit = po_vat * 0.19 if po_vat > 0 else 0.0
+zdrowotne = po_vat * 0.049 if po_vat > 0 else 0.0
 zarobek = po_vat - pit - zdrowotne
 
 podatki = max(vat_do_zaplaty, 0) + pit + zdrowotne
+
+# PEŁNY KOSZT
+pelny_koszt = zakup + koszt + podatki
+
+# PEŁNY KOSZT + EXTRA
+pelny_plus_extra = pelny_koszt + extra
 
 # -------- UI --------
 kolor = "green" if zarobek >= 0 else "red"
@@ -87,52 +71,35 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# podatki
 st.subheader("Podatki")
 
-c1, c2, c3, c4 = st.columns(4)
-
-with c1:
+a, b, c, d = st.columns(4)
+with a:
     st.markdown(f"<div class='card'><div class='label'>VAT</div><div class='value orange'>{pln(vat_do_zaplaty)}</div></div>", unsafe_allow_html=True)
-
-with c2:
+with b:
     st.markdown(f"<div class='card'><div class='label'>PIT</div><div class='value blue'>{pln(pit)}</div></div>", unsafe_allow_html=True)
-
-with c3:
+with c:
     st.markdown(f"<div class='card'><div class='label'>Zdrowotne</div><div class='value red'>{pln(zdrowotne)}</div></div>", unsafe_allow_html=True)
-
-with c4:
+with d:
     st.markdown(f"<div class='card'><div class='label'>Razem</div><div class='value'>{pln(podatki)}</div></div>", unsafe_allow_html=True)
 
-# podsumowanie
+# NOWE KAFLE
+st.subheader("Koszty")
 
-# NOWA METRYKA: pełny koszt
-pelny_koszt = zakup + koszt + podatki
-
-st.subheader("Podsumowanie")
-
-c1, c2 = st.columns(2)
-
-with c1:
-    st.markdown(f"<div class='card'><div class='label'>Po VAT</div><div class='value'>{pln(po_vat)}</div></div>", unsafe_allow_html=True)
-
-with c2:
-    st.markdown(f"<div class='card'><div class='label'>Po podatkach</div><div class='value'>{pln(zarobek)}</div></div>", unsafe_allow_html=True)
-
-# szczegóły
-st.subheader("Pełny koszt")
-
-st.markdown(
-    f"<div class='card'><div class='label'>Zakup + koszty + podatki</div><div class='value'>{pln(pelny_koszt)}</div></div>",
-    unsafe_allow_html=True
-)
+k1, k2 = st.columns(2)
+with k1:
+    st.markdown(f"<div class='card'><div class='label'>Pełny koszt</div><div class='value'>{pln(pelny_koszt)}</div></div>", unsafe_allow_html=True)
+with k2:
+    st.markdown(f"<div class='card'><div class='label'>Pełny koszt + EXTRA</div><div class='value'>{pln(pelny_plus_extra)}</div></div>", unsafe_allow_html=True)
 
 with st.expander("Szczegóły"):
-    st.write("Marża:", pln(marza))
-    st.write("VAT marża:", pln(vat_marza))
-    st.write("VAT z kosztów:", pln(vat_koszt))
+    st.write("Sprzedaż:", pln(sprzedaz))
+    st.write("Zakup:", pln(zakup))
+    st.write("Koszty faktura:", pln(koszt))
+    st.write("EXTRA:", pln(extra))
     st.write("VAT do zapłaty:", pln(vat_do_zaplaty))
-    st.write("Wynik po VAT:", pln(po_vat))
     st.write("PIT:", pln(pit))
     st.write("Zdrowotne:", pln(zdrowotne))
-    st.write("Zarobek końcowy:", pln(zarobek))
+    st.write("Pełny koszt:", pln(pelny_koszt))
+    st.write("Pełny koszt + EXTRA:", pln(pelny_plus_extra))
+    st.write("Zarobek:", pln(zarobek))
