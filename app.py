@@ -16,7 +16,6 @@ st.markdown("""
     display:grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-    align-items: stretch;
 }
 .hero-box {
     background: rgba(255,255,255,0.04);
@@ -25,7 +24,7 @@ st.markdown("""
     padding: 14px;
 }
 .hero-small {font-size:14px; opacity:0.85; margin-bottom:6px;}
-.hero-big {font-size:36px; font-weight:800; line-height:1.1;}
+.hero-big {font-size:36px; font-weight:800;}
 .card {background:white; border-radius:16px; padding:16px; border:1px solid #eee; text-align:center; min-height:110px;}
 .label {font-size:13px; color:#666; margin-bottom:8px;}
 .value {font-size:24px; font-weight:700;}
@@ -48,96 +47,75 @@ def to_float(x):
 
 st.title("💰 Kalkulator VAT marża")
 
-# -------- INPUTY --------
+# INPUTY (liczy się od razu)
 c1, c2, c3 = st.columns(3)
 with c1:
-    zakup_txt = st.text_input("Zakup (umowa)", placeholder="np. 547")
+    zakup = to_float(st.text_input("Zakup (umowa)", placeholder="np. 547"))
 with c2:
-    koszt_txt = st.text_input("Koszty faktura brutto", placeholder="np. 600")
+    koszt = to_float(st.text_input("Koszty faktura brutto", placeholder="np. 600"))
 with c3:
-    sprzedaz_txt = st.text_input("Cena sprzedaży", placeholder="np. 2000")
+    sprzedaz = to_float(st.text_input("Cena sprzedaży", placeholder="np. 2000"))
 
-extra_txt = st.text_input("EXTRA", placeholder="np. 200")
-koszty_gotowkowe_txt = st.text_input("Koszty gotówkowe", placeholder="np. 150")
+extra = to_float(st.text_input("EXTRA", placeholder="np. 200"))
+koszty_gotowkowe = to_float(st.text_input("Koszty gotówkowe", placeholder="np. 150"))
 
-przelicz = st.button("Przelicz")
+# OBLICZENIA (zawsze aktywne)
+marza = sprzedaz - zakup
+vat_marza = marza * 23 / 123 if marza > 0 else 0.0
+vat_z_kosztow = koszt * 23 / 123 if koszt > 0 else 0.0
+vat_do_zaplaty = vat_marza - vat_z_kosztow
 
-if przelicz:
-    zakup = to_float(zakup_txt)
-    koszt = to_float(koszt_txt)
-    sprzedaz = to_float(sprzedaz_txt)
-    extra = to_float(extra_txt)
-    koszty_gotowkowe = to_float(koszty_gotowkowe_txt)
+po_vat = sprzedaz - zakup - koszt - max(vat_do_zaplaty, 0)
+pit = po_vat * 0.19 if po_vat > 0 else 0.0
+zdrowotne = po_vat * 0.049 if po_vat > 0 else 0.0
+zarobek = po_vat - pit - zdrowotne
 
-    # -------- OBLICZENIA --------
-    marza = sprzedaz - zakup
-    vat_marza = marza * 23 / 123 if marza > 0 else 0.0
-    vat_z_kosztow = koszt * 23 / 123 if koszt > 0 else 0.0
-    vat_do_zaplaty = vat_marza - vat_z_kosztow
+podatki = max(vat_do_zaplaty, 0) + pit + zdrowotne
+zakup_koszty_podatki = zakup + koszt + podatki
+wszystko = zakup_koszty_podatki + extra
 
-    po_vat = sprzedaz - zakup - koszt - max(vat_do_zaplaty, 0)
-    pit = po_vat * 0.19 if po_vat > 0 else 0.0
-    zdrowotne = po_vat * 0.049 if po_vat > 0 else 0.0
-    zarobek = po_vat - pit - zdrowotne
+# FORMUŁA
+tyle_wyszlo = wszystko - podatki - zakup - koszt - koszty_gotowkowe
 
-    podatki = max(vat_do_zaplaty, 0) + pit + zdrowotne
-    zakup_koszty_podatki = zakup + koszt + podatki
-    wszystko = zakup_koszty_podatki + extra
+# UI
+kolor = "green" if zarobek >= 0 else "red"
+kolor_tyle = "green" if tyle_wyszlo >= 0 else "red"
 
-    # Formuła: wszystko - podatki razem - zakup - koszty faktura(brutto) - koszty gotówkowe
-    tyle_wyszlo = wszystko - podatki - zakup - koszt - koszty_gotowkowe
-
-    # -------- UI --------
-    kolor = "green" if zarobek >= 0 else "red"
-    kolor_tyle = "green" if tyle_wyszlo >= 0 else "red"
-
-    st.markdown(f"""
-    <div class="hero">
-        <div class="hero-split">
-            <div class="hero-box">
-                <div class="hero-small">Zarobek końcowy</div>
-                <div class="hero-big {kolor}">{pln(zarobek)}</div>
-            </div>
-            <div class="hero-box">
-                <div class="hero-small">Tyle wyszło</div>
-                <div class="hero-big {kolor_tyle}">{pln(tyle_wyszlo)}</div>
-            </div>
+st.markdown(f"""
+<div class="hero">
+    <div class="hero-split">
+        <div class="hero-box">
+            <div class="hero-small">Zarobek końcowy</div>
+            <div class="hero-big {kolor}">{pln(zarobek)}</div>
+        </div>
+        <div class="hero-box">
+            <div class="hero-small">Tyle wyszło</div>
+            <div class="hero-big {kolor_tyle}">{pln(tyle_wyszlo)}</div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
 
-    st.subheader("Podatki")
+st.subheader("Podatki")
 
-    a, b, c, d = st.columns(4)
-    with a:
-        st.markdown(f"<div class='card'><div class='label'>VAT</div><div class='value orange'>{pln(vat_do_zaplaty)}</div></div>", unsafe_allow_html=True)
-    with b:
-        st.markdown(f"<div class='card'><div class='label'>PIT</div><div class='value blue'>{pln(pit)}</div></div>", unsafe_allow_html=True)
-    with c:
-        st.markdown(f"<div class='card'><div class='label'>Zdrowotne</div><div class='value red'>{pln(zdrowotne)}</div></div>", unsafe_allow_html=True)
-    with d:
-        st.markdown(f"<div class='card'><div class='label'>Razem</div><div class='value'>{pln(podatki)}</div></div>", unsafe_allow_html=True)
+a, b, c, d = st.columns(4)
+with a:
+    st.markdown(f"<div class='card'><div class='label'>VAT</div><div class='value orange'>{pln(vat_do_zaplaty)}</div></div>", unsafe_allow_html=True)
+with b:
+    st.markdown(f"<div class='card'><div class='label'>PIT</div><div class='value blue'>{pln(pit)}</div></div>", unsafe_allow_html=True)
+with c:
+    st.markdown(f"<div class='card'><div class='label'>Zdrowotne</div><div class='value red'>{pln(zdrowotne)}</div></div>", unsafe_allow_html=True)
+with d:
+    st.markdown(f"<div class='card'><div class='label'>Razem</div><div class='value'>{pln(podatki)}</div></div>", unsafe_allow_html=True)
 
-    st.subheader("Koszty")
+st.subheader("Koszty")
 
-    k1, k2 = st.columns(2)
-    with k1:
-        st.markdown(f"<div class='card'><div class='label'>Zakup + koszty + podatki</div><div class='value'>{pln(zakup_koszty_podatki)}</div></div>", unsafe_allow_html=True)
-    with k2:
-        st.markdown(f"<div class='card'><div class='label'>Wszystko</div><div class='value'>{pln(wszystko)}</div></div>", unsafe_allow_html=True)
+k1, k2 = st.columns(2)
+with k1:
+    st.markdown(f"<div class='card'><div class='label'>Zakup + koszty + podatki</div><div class='value'>{pln(zakup_koszty_podatki)}</div></div>", unsafe_allow_html=True)
+with k2:
+    st.markdown(f"<div class='card'><div class='label'>Wszystko</div><div class='value'>{pln(wszystko)}</div></div>", unsafe_allow_html=True)
 
-    with st.expander("Szczegóły"):
-        st.write("Sprzedaż:", pln(sprzedaz))
-        st.write("Zakup:", pln(zakup))
-        st.write("Koszty faktura:", pln(koszt))
-        st.write("EXTRA:", pln(extra))
-        st.write("Koszty gotówkowe:", pln(koszty_gotowkowe))
-        st.write("VAT do zapłaty:", pln(vat_do_zaplaty))
-        st.write("PIT:", pln(pit))
-        st.write("Zdrowotne:", pln(zdrowotne))
-        st.write("Zakup + koszty + podatki:", pln(zakup_koszty_podatki))
-        st.write("Wszystko:", pln(wszystko))
-        st.write("Tyle wyszło:", pln(tyle_wyszlo))
-        st.write("Zarobek:", pln(zarobek))
-else:
-    st.info("Wpisz dane i kliknij Przelicz")
+with st.expander("Szczegóły"):
+    st.write("Zarobek:", pln(zarobek))
+    st.write("Tyle wyszło:", pln(tyle_wyszlo))
