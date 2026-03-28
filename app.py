@@ -105,6 +105,10 @@ with c4:
     st.markdown(f"<div class='card'><div class='label'>Razem</div><div class='value'>{pln(podatki)}</div></div>", unsafe_allow_html=True)
 
 # podsumowanie
+
+# NOWA METRYKA: pełny koszt
+pelny_koszt = zakup + koszt + podatki
+
 st.subheader("Podsumowanie")
 
 c1, c2 = st.columns(2)
@@ -116,6 +120,13 @@ with c2:
     st.markdown(f"<div class='card'><div class='label'>Po podatkach</div><div class='value'>{pln(zarobek)}</div></div>", unsafe_allow_html=True)
 
 # szczegóły
+st.subheader("Pełny koszt")
+
+st.markdown(
+    f"<div class='card'><div class='label'>Zakup + koszty + podatki</div><div class='value'>{pln(pelny_koszt)}</div></div>",
+    unsafe_allow_html=True
+)
+
 with st.expander("Szczegóły"):
     st.write("Marża:", pln(marza))
     st.write("VAT marża:", pln(vat_marza))
