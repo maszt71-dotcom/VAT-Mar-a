@@ -35,7 +35,8 @@ st.markdown("""
 
 
 def pln(x):
-    return f"{x:,.2f} zł".replace(",", " ")
+    znak = "+" if x > 0 else ""
+    return f"{znak}{x:,.2f} zł".replace(",", " ")
 
 
 def to_float(x):
