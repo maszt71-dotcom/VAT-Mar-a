@@ -5,8 +5,27 @@ st.set_page_config(page_title="VAT MARŻA PRO", layout="centered")
 st.markdown("""
 <style>
 .block-container {max-width: 900px; padding-top: 1rem; padding-bottom: 2rem;}
-.hero {background: linear-gradient(135deg,#111827,#1f2937); color:white; padding:20px; border-radius:20px; margin-bottom:18px;}
-.hero-big {font-size:38px; font-weight:800; line-height:1.1;}
+.hero {
+    background: linear-gradient(135deg,#111827,#1f2937);
+    color:white;
+    padding:20px;
+    border-radius:20px;
+    margin-bottom:18px;
+}
+.hero-split {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: stretch;
+}
+.hero-box {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 14px;
+}
+.hero-small {font-size:14px; opacity:0.85; margin-bottom:6px;}
+.hero-big {font-size:36px; font-weight:800; line-height:1.1;}
 .card {background:white; border-radius:16px; padding:16px; border:1px solid #eee; text-align:center; min-height:110px;}
 .label {font-size:13px; color:#666; margin-bottom:8px;}
 .value {font-size:24px; font-weight:700;}
@@ -39,6 +58,7 @@ with c3:
     sprzedaz_txt = st.text_input("Cena sprzedaży", placeholder="np. 2000")
 
 extra_txt = st.text_input("EXTRA", placeholder="np. 200")
+koszty_gotowkowe_txt = st.text_input("Koszty gotówkowe", placeholder="np. 150")
 
 przelicz = st.button("Przelicz")
 
@@ -47,6 +67,7 @@ if przelicz:
     koszt = to_float(koszt_txt)
     sprzedaz = to_float(sprzedaz_txt)
     extra = to_float(extra_txt)
+    koszty_gotowkowe = to_float(koszty_gotowkowe_txt)
 
     # -------- OBLICZENIA --------
     marza = sprzedaz - zakup
@@ -63,13 +84,25 @@ if przelicz:
     zakup_koszty_podatki = zakup + koszt + podatki
     wszystko = zakup_koszty_podatki + extra
 
+    # Formuła: wszystko - podatki razem - zakup - koszty faktura(brutto) - koszty gotówkowe
+    tyle_wyszlo = wszystko - podatki - zakup - koszt - koszty_gotowkowe
+
     # -------- UI --------
     kolor = "green" if zarobek >= 0 else "red"
+    kolor_tyle = "green" if tyle_wyszlo >= 0 else "red"
 
     st.markdown(f"""
     <div class="hero">
-        <div>Zarobek końcowy</div>
-        <div class="hero-big {kolor}">{pln(zarobek)}</div>
+        <div class="hero-split">
+            <div class="hero-box">
+                <div class="hero-small">Zarobek końcowy</div>
+                <div class="hero-big {kolor}">{pln(zarobek)}</div>
+            </div>
+            <div class="hero-box">
+                <div class="hero-small">Tyle wyszło</div>
+                <div class="hero-big {kolor_tyle}">{pln(tyle_wyszlo)}</div>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -98,11 +131,13 @@ if przelicz:
         st.write("Zakup:", pln(zakup))
         st.write("Koszty faktura:", pln(koszt))
         st.write("EXTRA:", pln(extra))
+        st.write("Koszty gotówkowe:", pln(koszty_gotowkowe))
         st.write("VAT do zapłaty:", pln(vat_do_zaplaty))
         st.write("PIT:", pln(pit))
         st.write("Zdrowotne:", pln(zdrowotne))
         st.write("Zakup + koszty + podatki:", pln(zakup_koszty_podatki))
         st.write("Wszystko:", pln(wszystko))
+        st.write("Tyle wyszło:", pln(tyle_wyszlo))
         st.write("Zarobek:", pln(zarobek))
 else:
     st.info("Wpisz dane i kliknij Przelicz")
