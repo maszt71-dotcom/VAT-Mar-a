@@ -96,7 +96,7 @@ def pln(x: float) -> str:
     return f"{x:,.2f} zł".replace(",", " ")
 
 
-def policz(zakup: float, faktura_marza: float, cena_na_reke: float, koszt_brutto: float):
+def policz(zakup: float, faktura_marza: float, cena_sprzedazy: float, koszt_brutto: float):
     marza = faktura_marza - zakup
     vat_marza = marza * 23 / 123 if marza > 0 else 0.0
 
@@ -108,7 +108,7 @@ def policz(zakup: float, faktura_marza: float, cena_na_reke: float, koszt_brutto
     pit_liniowy = dochod * 0.19 if dochod > 0 else 0.0
     zdrowotne = dochod * 0.049 if dochod > 0 else 0.0
 
-    zarobek = cena_na_reke - zakup - koszt_brutto - max(vat_do_zaplaty, 0) - pit_liniowy - zdrowotne
+    zarobek = cena_sprzedazy - zakup - koszt_brutto - max(vat_do_zaplaty, 0) - pit_liniowy - zdrowotne
     podatki_razem = max(vat_do_zaplaty, 0) + pit_liniowy + zdrowotne
 
     return {
@@ -125,15 +125,8 @@ def policz(zakup: float, faktura_marza: float, cena_na_reke: float, koszt_brutto
     }
 
 
-def znajdz_cene_na_reke_dla_zarobku(zakup: float, faktura_marza: float, koszt_brutto: float, oczekiwany_zarobek: float):
-    start = policz(zakup, faktura_marza, 0.0, koszt_brutto)
-    baza_bez_ceny = start["zarobek"]
-    potrzebna_cena = oczekiwany_zarobek - baza_bez_ceny
-    return max(potrzebna_cena, 0.0)
-
-
 st.title("💰 Kalkulator VAT marża PRO+")
-st.caption("VAT do zapłaty = VAT marża − VAT z kosztów. Osobno VAT, PIT liniowy i zdrowotne.")
+st.caption("Cena sprzedaży = cena na rękę. Wynik liczony tylko z wpisanych danych.")
 
 with st.form("kalkulator"):
     st.subheader("Dane wejściowe")
@@ -141,20 +134,16 @@ with st.form("kalkulator"):
     with c1:
         zakup = st.number_input("Zakup (umowa)", min_value=0.0, value=547.0, step=100.0)
         faktura_marza = st.number_input("Faktura VAT marża", min_value=0.0, value=2000.0, step=100.0)
-        koszt_brutto = st.number_input("Koszty (faktura brutto 23%)", min_value=0.0, value=600.0, step=100.0)
     with c2:
-        cena_na_reke = st.number_input("Cena sprzedaży / ile klient realnie płaci", min_value=0.0, value=3000.0, step=100.0)
-        oczekiwany_zarobek = st.number_input("Jaki zarobek chcesz osiągnąć", min_value=0.0, value=500.0, step=100.0)
+        cena_sprzedazy = st.number_input("Cena sprzedaży", min_value=0.0, value=3000.0, step=100.0)
+        koszt_brutto = st.number_input("Koszty (faktura brutto 23%)", min_value=0.0, value=600.0, step=100.0)
 
     licz = st.form_submit_button("Oblicz")
 
 if licz or True:
-    wynik = policz(zakup, faktura_marza, cena_na_reke, koszt_brutto)
-    potrzebna_cena_na_reke = znajdz_cene_na_reke_dla_zarobku(zakup, faktura_marza, koszt_brutto, oczekiwany_zarobek)
-    roznica_do_celu = wynik["zarobek"] - oczekiwany_zarobek
+    wynik = policz(zakup, faktura_marza, cena_sprzedazy, koszt_brutto)
 
     kolor_zarobek = "value-green" if wynik["zarobek"] >= 0 else "value-red"
-    kolor_cel = "value-green" if roznica_do_celu >= 0 else "value-red"
     kolor_vat = "value-orange" if wynik["vat_do_zaplaty"] > 0 else "value-green"
 
     st.markdown("<div class='app-shell'>", unsafe_allow_html=True)
@@ -165,9 +154,9 @@ if licz or True:
             <div class="hero-small">Zarobek teraz</div>
             <p class="hero-big {kolor_zarobek}">{pln(wynik['zarobek'])}</p>
             <div class="pill-row">
-                <div class="pill">Cel zarobku: {pln(oczekiwany_zarobek)}</div>
-                <div class="pill">Różnica do celu: {pln(roznica_do_celu)}</div>
-                <div class="pill">Cena realnie zapłacona: {pln(cena_na_reke)}</div>
+                <div class="pill">Cena sprzedaży: {pln(cena_sprzedazy)}</div>
+                <div class="pill">Faktura VAT marża: {pln(faktura_marza)}</div>
+                <div class="pill">Zakup: {pln(zakup)}</div>
             </div>
         </div>
         """,
@@ -225,16 +214,16 @@ if licz or True:
             unsafe_allow_html=True,
         )
 
-    st.markdown("<div class='section-title'>Liczenie w drugą stronę</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>Podsumowanie</div>", unsafe_allow_html=True)
     b1, b2, b3 = st.columns(3)
 
     with b1:
         st.markdown(
             f"""
             <div class="card">
-                <div class="label">Oczekiwany zarobek</div>
-                <div class="value">{pln(oczekiwany_zarobek)}</div>
-                <div class="subvalue">To chcesz osiągnąć</div>
+                <div class="label">Cena sprzedaży</div>
+                <div class="value">{pln(cena_sprzedazy)}</div>
+                <div class="subvalue">To jest cena na rękę</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -244,9 +233,9 @@ if licz or True:
         st.markdown(
             f"""
             <div class="card">
-                <div class="label">Brakuje / nadwyżka</div>
-                <div class="value {kolor_cel}">{pln(roznica_do_celu)}</div>
-                <div class="subvalue">Porównanie do celu</div>
+                <div class="label">Koszty razem</div>
+                <div class="value">{pln(zakup + koszt_brutto)}</div>
+                <div class="subvalue">Zakup + koszty brutto</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -256,9 +245,9 @@ if licz or True:
         st.markdown(
             f"""
             <div class="card">
-                <div class="label">Potrzebna cena na rękę</div>
-                <div class="value value-blue">{pln(potrzebna_cena_na_reke)}</div>
-                <div class="subvalue">Żeby osiągnąć wpisany zarobek</div>
+                <div class="label">Zarobek końcowy</div>
+                <div class="value {kolor_zarobek}">{pln(wynik['zarobek'])}</div>
+                <div class="subvalue">Po odjęciu kosztów i podatków</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -267,7 +256,7 @@ if licz or True:
     with st.expander("Pokaż szczegóły obliczeń"):
         st.write(f"**Zakup (umowa):** {pln(zakup)}")
         st.write(f"**Faktura VAT marża:** {pln(faktura_marza)}")
-        st.write(f"**Cena realnie zapłacona:** {pln(cena_na_reke)}")
+        st.write(f"**Cena sprzedaży = cena na rękę:** {pln(cena_sprzedazy)}")
         st.write(f"**Koszty brutto:** {pln(koszt_brutto)}")
         st.write(f"**Marża do VAT:** {pln(wynik['marza'])}")
         st.write(f"**VAT marża:** {pln(wynik['vat_marza'])}")
@@ -277,14 +266,11 @@ if licz or True:
         st.write(f"**Dochód do PIT i zdrowotnego:** {pln(wynik['dochod'])}")
         st.write(f"**PIT liniowy:** {pln(wynik['pit_liniowy'])}")
         st.write(f"**Zdrowotne:** {pln(wynik['zdrowotne'])}")
-        st.write(f"**Zarobek teraz:** {pln(wynik['zarobek'])}")
-        st.write(f"**Potrzebna cena na rękę dla celu:** {pln(potrzebna_cena_na_reke)}")
+        st.write(f"**Zarobek końcowy:** {pln(wynik['zarobek'])}")
 
     if wynik["zarobek"] < 0:
         st.error("Na tej transakcji wychodzisz na minus.")
-    elif roznica_do_celu < 0:
-        st.warning("Do oczekiwanego zarobku jeszcze brakuje.")
     else:
-        st.success("Cel zarobku osiągnięty.")
+        st.success("Wynik policzony z wpisanych danych.")
 
     st.markdown("</div>", unsafe_allow_html=True)
