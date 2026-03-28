@@ -56,7 +56,7 @@ with c2:
 with c3:
     sprzedaz = to_float(st.text_input("Cena sprzedaży", placeholder="np. 2000"))
 
-extra = to_float(st.text_input("EXTRA", placeholder="np. 200"))
+kasa_reka = to_float(st.text_input("Kasa do ręki", placeholder="np. 2000"))
 koszty_gotowkowe = to_float(st.text_input("Koszty gotówkowe", placeholder="np. 150"))
 
 # OBLICZENIA (zawsze aktywne)
@@ -72,7 +72,7 @@ zarobek = po_vat - pit - zdrowotne
 
 podatki = max(vat_do_zaplaty, 0) + pit + zdrowotne
 zakup_koszty_podatki = zakup + koszt + podatki
-wszystko = zakup_koszty_podatki + extra
+wszystko = kasa_reka - podatki - zakup - koszt - koszty_gotowkowe
 
 # FORMUŁA
 tyle_wyszlo = wszystko - podatki - zakup - koszt - koszty_gotowkowe
@@ -114,7 +114,7 @@ k1, k2 = st.columns(2)
 with k1:
     st.markdown(f"<div class='card'><div class='label'>Zakup + koszty + podatki</div><div class='value'>{pln(zakup_koszty_podatki)}</div></div>", unsafe_allow_html=True)
 with k2:
-    st.markdown(f"<div class='card'><div class='label'>Wszystko</div><div class='value'>{pln(wszystko)}</div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='card'><div class='label'>Kasa do ręki - wszystko</div><div class='value'>{pln(wszystko)}</div></div>", unsafe_allow_html=True)
 
 with st.expander("Szczegóły"):
     st.write("Zarobek:", pln(zarobek))
