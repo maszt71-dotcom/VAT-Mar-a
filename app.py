@@ -96,7 +96,7 @@ def pln(x: float) -> str:
     return f"{x:,.2f} zł".replace(",", " ")
 
 
-def policz(zakup: float, faktura_marza: float, cena_sprzedazy: float, koszt_brutto: float):
+def policz(zakup: float, faktura_marza: float, cena_sprzedazy: float, koszt_brutto: float, koszty_dodatkowe: float):
     marza = faktura_marza - zakup
     vat_marza = marza * 23 / 123 if marza > 0 else 0.0
 
@@ -104,11 +104,12 @@ def policz(zakup: float, faktura_marza: float, cena_sprzedazy: float, koszt_brut
     koszt_netto = koszt_brutto - vat_z_kosztow
 
     vat_do_zaplaty = vat_marza - vat_z_kosztow
-    dochod = marza - vat_marza - koszt_netto
+    dochod = marza - vat_marza - koszt_netto - koszty_dodatkowe
     pit_liniowy = dochod * 0.19 if dochod > 0 else 0.0
     zdrowotne = dochod * 0.049 if dochod > 0 else 0.0
 
-    zarobek = cena_sprzedazy - zakup - koszt_brutto - max(vat_do_zaplaty, 0) - pit_liniowy - zdrowotne
+    wynik_ogolny = cena_sprzedazy - zakup - koszt_brutto - max(vat_do_zaplaty, 0) - pit_liniowy - zdrowotne
+    zarobek_koncowy = wynik_ogolny - koszty_dodatkowe
     podatki_razem = max(vat_do_zaplaty, 0) + pit_liniowy + zdrowotne
 
     return {
@@ -120,13 +121,15 @@ def policz(zakup: float, faktura_marza: float, cena_sprzedazy: float, koszt_brut
         "dochod": dochod,
         "pit_liniowy": pit_liniowy,
         "zdrowotne": zdrowotne,
-        "zarobek": zarobek,
+        "wynik_ogolny": wynik_ogolny,
+        "koszty_dodatkowe": koszty_dodatkowe,
+        "zarobek_koncowy": zarobek_koncowy,
         "podatki_razem": podatki_razem,
     }
 
 
 st.title("💰 Kalkulator VAT marża PRO+")
-st.caption("Cena sprzedaży = cena na rękę. Wynik liczony tylko z wpisanych danych.")
+st.caption("Cena sprzedaży = cena na rękę. Dodatkowe koszty bez faktury odejmowane od ogólnego wyniku.")
 
 with st.form("kalkulator"):
     st.subheader("Dane wejściowe")
@@ -134,16 +137,17 @@ with st.form("kalkulator"):
     with c1:
         zakup = st.number_input("Zakup (umowa)", min_value=0.0, value=547.0, step=100.0)
         faktura_marza = st.number_input("Faktura VAT marża", min_value=0.0, value=2000.0, step=100.0)
+        koszt_brutto = st.number_input("Koszty (faktura brutto 23%)", min_value=0.0, value=600.0, step=100.0)
     with c2:
         cena_sprzedazy = st.number_input("Cena sprzedaży", min_value=0.0, value=3000.0, step=100.0)
-        koszt_brutto = st.number_input("Koszty (faktura brutto 23%)", min_value=0.0, value=600.0, step=100.0)
+        koszty_dodatkowe = st.number_input("Koszty dodatkowe bez faktury", min_value=0.0, value=0.0, step=100.0)
 
     licz = st.form_submit_button("Oblicz")
 
 if licz or True:
-    wynik = policz(zakup, faktura_marza, cena_sprzedazy, koszt_brutto)
+    wynik = policz(zakup, faktura_marza, cena_sprzedazy, koszt_brutto, koszty_dodatkowe)
 
-    kolor_zarobek = "value-green" if wynik["zarobek"] >= 0 else "value-red"
+    kolor_zarobek = "value-green" if wynik["zarobek_koncowy"] >= 0 else "value-red"
     kolor_vat = "value-orange" if wynik["vat_do_zaplaty"] > 0 else "value-green"
 
     st.markdown("<div class='app-shell'>", unsafe_allow_html=True)
@@ -151,8 +155,8 @@ if licz or True:
     st.markdown(
         f"""
         <div class="hero">
-            <div class="hero-small">Zarobek teraz</div>
-            <p class="hero-big {kolor_zarobek}">{pln(wynik['zarobek'])}</p>
+            <div class="hero-small">Zarobek końcowy</div>
+            <p class="hero-big {kolor_zarobek}">{pln(wynik['zarobek_koncowy'])}</p>
             <div class="pill-row">
                 <div class="pill">Cena sprzedaży: {pln(cena_sprzedazy)}</div>
                 <div class="pill">Faktura VAT marża: {pln(faktura_marza)}</div>
@@ -215,15 +219,15 @@ if licz or True:
         )
 
     st.markdown("<div class='section-title'>Podsumowanie</div>", unsafe_allow_html=True)
-    b1, b2, b3 = st.columns(3)
+    b1, b2, b3, b4 = st.columns(4)
 
     with b1:
         st.markdown(
             f"""
             <div class="card">
-                <div class="label">Cena sprzedaży</div>
-                <div class="value">{pln(cena_sprzedazy)}</div>
-                <div class="subvalue">To jest cena na rękę</div>
+                <div class="label">Wynik ogólny</div>
+                <div class="value">{pln(wynik['wynik_ogolny'])}</div>
+                <div class="subvalue">Przed odjęciem kosztów dodatkowych</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -233,9 +237,9 @@ if licz or True:
         st.markdown(
             f"""
             <div class="card">
-                <div class="label">Koszty razem</div>
-                <div class="value">{pln(zakup + koszt_brutto)}</div>
-                <div class="subvalue">Zakup + koszty brutto</div>
+                <div class="label">Koszty dodatkowe</div>
+                <div class="value value-orange">{pln(wynik['koszty_dodatkowe'])}</div>
+                <div class="subvalue">Bez faktury, odejmowane od wyniku</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -245,9 +249,21 @@ if licz or True:
         st.markdown(
             f"""
             <div class="card">
+                <div class="label">Koszty razem</div>
+                <div class="value">{pln(zakup + koszt_brutto + koszty_dodatkowe)}</div>
+                <div class="subvalue">Zakup + koszty brutto + dodatkowe</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with b4:
+        st.markdown(
+            f"""
+            <div class="card">
                 <div class="label">Zarobek końcowy</div>
-                <div class="value {kolor_zarobek}">{pln(wynik['zarobek'])}</div>
-                <div class="subvalue">Po odjęciu kosztów i podatków</div>
+                <div class="value {kolor_zarobek}">{pln(wynik['zarobek_koncowy'])}</div>
+                <div class="subvalue">Wynik ogólny − koszty dodatkowe</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -258,6 +274,7 @@ if licz or True:
         st.write(f"**Faktura VAT marża:** {pln(faktura_marza)}")
         st.write(f"**Cena sprzedaży = cena na rękę:** {pln(cena_sprzedazy)}")
         st.write(f"**Koszty brutto:** {pln(koszt_brutto)}")
+        st.write(f"**Koszty dodatkowe bez faktury:** {pln(koszty_dodatkowe)}")
         st.write(f"**Marża do VAT:** {pln(wynik['marza'])}")
         st.write(f"**VAT marża:** {pln(wynik['vat_marza'])}")
         st.write(f"**VAT z kosztów:** {pln(wynik['vat_z_kosztow'])}")
@@ -266,9 +283,10 @@ if licz or True:
         st.write(f"**Dochód do PIT i zdrowotnego:** {pln(wynik['dochod'])}")
         st.write(f"**PIT liniowy:** {pln(wynik['pit_liniowy'])}")
         st.write(f"**Zdrowotne:** {pln(wynik['zdrowotne'])}")
-        st.write(f"**Zarobek końcowy:** {pln(wynik['zarobek'])}")
+        st.write(f"**Wynik ogólny:** {pln(wynik['wynik_ogolny'])}")
+        st.write(f"**Zarobek końcowy:** {pln(wynik['zarobek_koncowy'])}")
 
-    if wynik["zarobek"] < 0:
+    if wynik["zarobek_koncowy"] < 0:
         st.error("Na tej transakcji wychodzisz na minus.")
     else:
         st.success("Wynik policzony z wpisanych danych.")
