@@ -90,7 +90,7 @@ k1, k2 = st.columns(2)
 with k1:
     st.markdown(f"<div class='card'><div class='label'>Pełny koszt</div><div class='value'>{pln(pelny_koszt)}</div></div>", unsafe_allow_html=True)
 with k2:
-    st.markdown(f"<div class='card'><div class='label'>Pełny koszt + EXTRA</div><div class='value'>{pln(pelny_plus_extra)}</div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='card'><div class='label'>Wszystko</div><div class='value'>{pln(pelny_plus_extra)}</div></div>", unsafe_allow_html=True)
 
 with st.expander("Szczegóły"):
     st.write("Sprzedaż:", pln(sprzedaz))
@@ -101,5 +101,5 @@ with st.expander("Szczegóły"):
     st.write("PIT:", pln(pit))
     st.write("Zdrowotne:", pln(zdrowotne))
     st.write("Pełny koszt:", pln(pelny_koszt))
-    st.write("Pełny koszt + EXTRA:", pln(pelny_plus_extra))
+    st.write("Wszystko:", pln(pelny_plus_extra))
     st.write("Zarobek:", pln(zarobek))
